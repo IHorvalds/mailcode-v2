@@ -1,0 +1,10 @@
+database: /Users/horvalds/Development/mailcodes/service/build/emails.db
+subjects:
+  - verify
+  - verification
+  - auth
+extractors:
+  - regex: ">\\s*(?P<code>\\d{4,8})\\s*<"
+    capture: "code"
+  - regex: "LinkedIn account\\.\\r\\n\\r\\n(\\d{6})"
+    capture: 1
