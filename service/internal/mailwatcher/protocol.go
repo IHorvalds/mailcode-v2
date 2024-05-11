@@ -15,7 +15,9 @@ const (
 	Stop            Action = 5
 	StopAll         Action = 6
 	Code            Action = 7
-	ConnectionError Action = 8
+	GetMailbox      Action = 8
+	GetAllMailboxes Action = 9
+	ConnectionError Action = 10
 )
 
 type Message struct {
@@ -41,8 +43,12 @@ func (a *Action) ToString() (string, error) {
 		return "Code", nil
 	case ConnectionError:
 		return "ConnectionError", nil
+	case GetMailbox:
+		return "GetMailbox", nil
+	case GetAllMailboxes:
+		return "GetAllMailboxes", nil
 	default:
-		return "", errors.New("Unknown message action")
+		return "", errors.New("unknown message action")
 	}
 }
 

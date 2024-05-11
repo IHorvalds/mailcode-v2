@@ -14,6 +14,11 @@ import (
 	"github.com/emersion/go-imap/client"
 )
 
+type EmailCode struct {
+	Sender string
+	Code   string
+}
+
 type MailboxContext struct {
 	mailbox     *Mailbox
 	doneChannel chan struct{}
@@ -21,7 +26,7 @@ type MailboxContext struct {
 	rwMtx       sync.RWMutex
 }
 
-func WatchMailboxes(mailboxes *list.List, config *Configuration, codeChannel chan string) (map[string]*MailboxContext, error) {
+func WatchMailboxes(mailboxes *list.List, config *Configuration, codeChannel chan EmailCode) (map[string]*MailboxContext, error) {
 	contexts := map[string]*MailboxContext{}
 
 	for e := mailboxes.Front(); e != nil; e = e.Next() {
@@ -38,7 +43,7 @@ func WatchMailboxes(mailboxes *list.List, config *Configuration, codeChannel cha
 	return contexts, nil
 }
 
-func WatchMailbox(mb *Mailbox, config *Configuration, codeChannel chan string) *MailboxContext {
+func WatchMailbox(mb *Mailbox, config *Configuration, codeChannel chan EmailCode) *MailboxContext {
 	ctx := new(MailboxContext)
 	ctx.mailbox = mb
 	ctx.doneChannel = make(chan struct{})
@@ -50,8 +55,9 @@ func WatchMailbox(mb *Mailbox, config *Configuration, codeChannel chan string) *
 
 func StopWatchingMailboxes(ctxs *map[string]*MailboxContext) {
 	for _, ctx := range *ctxs {
-		log.Printf("Stopping %s", ctx.mailbox.Email)
-		ctx.doneChannel <- struct{}{}
+		if IsRunning(ctx) {
+			StopWatchingMailbox(ctx)
+		}
 	}
 }
 
@@ -67,7 +73,7 @@ func IsRunning(ctx *MailboxContext) bool {
 	return running
 }
 
-func watchMailbox(ctx *MailboxContext, config *Configuration, codeChannel chan string) {
+func watchMailbox(ctx *MailboxContext, config *Configuration, codeChannel chan EmailCode) {
 	var c *client.Client = nil
 	var err error = nil
 	if ctx.mailbox.UseSSL {
@@ -88,6 +94,8 @@ func watchMailbox(ctx *MailboxContext, config *Configuration, codeChannel chan s
 		return
 	}
 
+	log.Printf("Starting to watch %s...\n", ctx.mailbox.Email)
+
 	ctx.rwMtx.Lock()
 	ctx.isRunning = true
 	ctx.rwMtx.Unlock()
@@ -95,6 +103,7 @@ func watchMailbox(ctx *MailboxContext, config *Configuration, codeChannel chan s
 	defer func() {
 		ctx.rwMtx.Lock()
 		ctx.isRunning = false
+		log.Printf("Stopped watching %s.\n", ctx.mailbox.Email)
 		ctx.rwMtx.Unlock()
 	}()
 
@@ -119,7 +128,6 @@ func watchMailbox(ctx *MailboxContext, config *Configuration, codeChannel chan s
 			finishedIdling := false
 			select {
 			case <-ctx.doneChannel:
-				log.Printf("Stopped watching %s\n", ctx.mailbox.Email)
 				close(stop)
 				return
 			case err = <-paused:
@@ -219,18 +227,25 @@ func fetchEmails(c *client.Client, subjects *[]string, messages chan *imap.Messa
 		log.Println("Found potential verification code email")
 		seqset := new(imap.SeqSet)
 		seqset.AddNum(uids...)
-		return c.UidFetch(seqset, []imap.FetchItem{imap.FetchItem("BODY.PEEK[TEXT] INTERNALDATE")}, messages)
+		return c.UidFetch(seqset, []imap.FetchItem{imap.FetchItem("BODY.PEEK[TEXT] INTERNALDATE"), imap.FetchEnvelope}, messages)
 	}
 
 	close(messages)
 	return nil
 }
 
-func extractCode(msg *imap.Message, regs *[]Extractor) (string, error) {
+func extractCode(msg *imap.Message, regs *[]Extractor) (EmailCode, error) {
+	c := EmailCode{}
+
 	for _, literal := range msg.Body {
 		body, err := io.ReadAll(literal)
 		if err != nil {
-			return "", err
+			return c, err
+		}
+
+		sender := ""
+		if len(msg.Envelope.From) > 0 {
+			sender = msg.Envelope.From[0].Address()
 		}
 
 		strBody := string(body)
@@ -239,18 +254,24 @@ func extractCode(msg *imap.Message, regs *[]Extractor) (string, error) {
 			if capName, ok := re.Capture.(string); ok {
 				capIdx := (&re.Reg).SubexpIndex(capName)
 				if capIdx > -1 && len(parts) > capIdx {
-					return parts[capIdx], nil
+					return EmailCode{
+						Sender: sender,
+						Code:   parts[capIdx],
+					}, nil
 				}
 			} else if v, ok := re.Capture.(int); ok {
 				if len(parts) > v {
-					return parts[v], nil
+					return EmailCode{
+						Sender: sender,
+						Code:   parts[v],
+					}, nil
 				}
 			} else {
 				log.Panicf("Unexpected type of capture: %s", reflect.TypeOf(re.Capture).Name())
 			}
 		}
 
-		return "", errors.New("no codes found")
+		return c, errors.New("no codes found")
 	}
-	return "", errors.New("message had no body")
+	return c, errors.New("message had no body")
 }

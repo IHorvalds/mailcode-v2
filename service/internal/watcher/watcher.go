@@ -1,6 +1,7 @@
 package watcher
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
@@ -10,19 +11,20 @@ import (
 	"os/signal"
 	"reflect"
 	"syscall"
+	"time"
 )
 
 type Watcher struct {
 	ctxs        *map[string]*mailwatcher.MailboxContext
 	repo        *mailwatcher.Repository
 	config      *mailwatcher.Configuration
-	codeChannel chan string
+	codeChannel chan mailwatcher.EmailCode
 }
 
 // Watcher methods
 func (w *Watcher) Run(repo *mailwatcher.Repository, config *mailwatcher.Configuration) int {
 
-	codeChannel := make(chan string)
+	codeChannel := make(chan mailwatcher.EmailCode)
 	defer close(codeChannel)
 	mbs, err := repo.GetAllMailboxes()
 	if err != nil {
@@ -55,11 +57,12 @@ func (w *Watcher) Run(repo *mailwatcher.Repository, config *mailwatcher.Configur
 
 	go func() {
 		for code := range codeChannel {
-			fmt.Printf("Code is %s\n", code)
+			log.Printf("Code is %s\n", code)
 			msg := mailwatcher.Message{
 				Cmd: mailwatcher.Code,
 				Params: map[string]interface{}{
-					"code": code,
+					"code":   code.Code,
+					"sender": code.Sender,
 				},
 			}
 
@@ -89,42 +92,65 @@ func (w *Watcher) Run(repo *mailwatcher.Repository, config *mailwatcher.Configur
 	log.Println("\nShutting down...")
 	s.Stop()
 	mailwatcher.StopWatchingMailboxes(s.watcher.ctxs)
+	stopChan := make(chan struct{})
+
+	go func() {
+		for {
+			bStopped := true
+			for _, ctx := range *s.watcher.ctxs {
+				if mailwatcher.IsRunning(ctx) {
+					bStopped = false
+				}
+			}
+
+			if bStopped {
+				break
+			}
+		}
+
+		stopChan <- struct{}{}
+	}()
+
+	select {
+	case <-time.After(time.Duration(10 * time.Second)):
+		log.Println("Timeout waiting to stop watching mailboxes")
+	case <-stopChan:
+		break
+	}
 	return 0
 }
 
-func (w *Watcher) handleMessage(msg *mailwatcher.Message) {
+func (w *Watcher) handleMessage(msg *mailwatcher.Message) (*mailwatcher.Message, error) {
 	action, err := msg.Cmd.ToString()
 	if err != nil {
-		log.Printf("Invalid action %d\n", msg.Cmd)
+		return nil, fmt.Errorf("invalid action %d", msg.Cmd)
 	}
-	log.Printf("Handling message action %d\n", action)
+
+	log.Printf("Handling message action %s\n", action)
 	switch msg.Cmd {
 	case mailwatcher.Add:
 		// Add email
 		mb, err := map2Mailbox(&msg.Params)
 		if err != nil {
-			log.Println("failed to parse mailbox from message params")
-			return
+			return nil, errors.New("failed to parse mailbox from message params")
 		}
 		w.repo.AddMailbox(mb)
 	case mailwatcher.Remove:
 		// Remove email
 		em, ok := msg.Params["email"].(string)
 		if !ok {
-			log.Println("failed to parse email from message params")
-			return
+			return nil, errors.New("failed to parse email from message params")
 		}
 		w.repo.RemoveMailbox(em)
 	case mailwatcher.Watch:
 		// Watch email
 		em, ok := msg.Params["email"].(string)
 		if !ok {
-			log.Println("failed to parse email from message params")
-			return
+			return nil, errors.New("failed to parse email from message params")
 		}
 		mb, err := w.repo.GetMailbox(em)
 		if err != nil {
-			log.Println(err)
+			return nil, err
 		}
 		ctx, exists := (*w.ctxs)[em]
 		if !exists || !mailwatcher.IsRunning(ctx) {
@@ -138,8 +164,7 @@ func (w *Watcher) handleMessage(msg *mailwatcher.Message) {
 		// add them => go watch() them
 		mbs, err := w.repo.GetAllMailboxes()
 		if err != nil {
-			log.Println(err)
-			return
+			return nil, err
 		}
 		for el := mbs.Front(); el != nil; el = el.Next() {
 			mb := el.Value.(*mailwatcher.Mailbox)
@@ -152,8 +177,7 @@ func (w *Watcher) handleMessage(msg *mailwatcher.Message) {
 		// Stop watching email
 		em, ok := msg.Params["email"].(string)
 		if !ok {
-			log.Println("failed to parse email from message params")
-			return
+			return nil, errors.New("failed to parse email from message params")
 		}
 		ctx, exists := (*w.ctxs)[em]
 		if exists {
@@ -166,7 +190,49 @@ func (w *Watcher) handleMessage(msg *mailwatcher.Message) {
 		// Signal all the ctxs
 		// clear out the ctxs
 		mailwatcher.StopWatchingMailboxes(w.ctxs)
+	case mailwatcher.GetMailbox:
+		em, ok := msg.Params["email"].(string)
+		if !ok {
+			return nil, errors.New("failed to parse email from message params")
+		}
+
+		mb, err := w.repo.GetMailbox(em)
+		if err != nil {
+			e := fmt.Sprintf("email '%s' not found", em)
+			return &mailwatcher.Message{
+					Cmd: mailwatcher.GetMailbox,
+					Params: map[string]interface{}{
+						"error": e,
+					},
+				},
+				errors.New(e)
+		}
+
+		return &mailwatcher.Message{
+			Cmd:    mailwatcher.GetMailbox,
+			Params: mailbox2map(&mb),
+		}, nil
+	case mailwatcher.GetAllMailboxes:
+		mbs, err := w.repo.GetAllMailboxes()
+		if err != nil {
+			e := "error getting emails"
+			return &mailwatcher.Message{
+				Cmd: mailwatcher.GetAllMailboxes,
+				Params: map[string]interface{}{
+					"error": e,
+				},
+			}, errors.New(e)
+		}
+
+		return &mailwatcher.Message{
+			Cmd: mailwatcher.GetAllMailboxes,
+			Params: map[string]interface{}{
+				"emails": json.Marshal(),
+			},
+		}, nil
 	}
+
+	return nil, nil
 }
 
 func map2Mailbox(mp *map[string]interface{}) (*mailwatcher.Mailbox, error) {
@@ -177,23 +243,23 @@ func map2Mailbox(mp *map[string]interface{}) (*mailwatcher.Mailbox, error) {
 	errTemplate := "%s not in msg params"
 	em, ok := (*mp)["email"].(string)
 	if !ok {
-		return nil, errors.New(fmt.Sprintf(errTemplate, "email"))
+		return nil, fmt.Errorf(errTemplate, "email")
 	}
 	pw, ok := (*mp)["password"].(string)
 	if !ok {
-		return nil, errors.New(fmt.Sprint(errTemplate, "password"))
+		return nil, fmt.Errorf(errTemplate, "password")
 	}
 	srv, ok := (*mp)["server"].(string)
 	if !ok {
-		return nil, errors.New(fmt.Sprint(errTemplate, "server"))
+		return nil, fmt.Errorf(errTemplate, "server")
 	}
 	port, ok := (*mp)["port"].(int32)
 	if !ok {
-		return nil, errors.New(fmt.Sprint(errTemplate, "port"))
+		return nil, fmt.Errorf(errTemplate, "port")
 	}
 	useSSL, ok := (*mp)["useSSL"].(bool)
 	if !ok {
-		return nil, errors.New(fmt.Sprint(errTemplate, "port"))
+		return nil, fmt.Errorf(errTemplate, "port")
 	}
 	mb := mailwatcher.Mailbox{
 		Email:    em,
@@ -203,4 +269,13 @@ func map2Mailbox(mp *map[string]interface{}) (*mailwatcher.Mailbox, error) {
 		UseSSL:   useSSL,
 	}
 	return &mb, nil
+}
+
+func mailbox2map(mb *mailwatcher.Mailbox) map[string]interface{} {
+	return map[string]interface{}{
+		"email":  mb.Email,
+		"server": mb.Server,
+		"port":   mb.Port,
+		"useSSL": mb.UseSSL,
+	}
 }
