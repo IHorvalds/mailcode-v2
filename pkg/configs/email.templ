@@ -1,0 +1,24 @@
+package configs
+
+import "fmt"
+
+templ EmailList(emails []Email) {
+	<div class="">
+		for _, email := range emails {
+			<div class="email">
+				<p class="email_user">{ email.User }</p>
+			</div>
+		}
+	</div>
+}
+
+templ EmailForm(email Email) {
+	<form action="/email" method="post">
+		<input type="text" name="user" value={ email.User }/>
+		<input type="text" name="server" value={ email.IMAPServer }/>
+		<input type="number" name="port" value={ fmt.Sprintf("%d", email.Port) }/>
+		<input type="text" name="encryption" value={ email.Encryption.String() }/>
+		<input type="text" name="inbox" value={ email.Inbox }/>
+		<input type="submit" value="Submit"/>
+	</form>
+}
