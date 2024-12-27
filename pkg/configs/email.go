@@ -3,6 +3,7 @@ package configs
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 )
@@ -11,14 +12,14 @@ import (
 type Encryption int
 
 const (
-	EncryptionNone Encryption = iota
-	EncryptionStartTLS
-	EncryptionSSL
+	None Encryption = iota
+	StartTLS
+	SSL
 )
 
 var EncryptionValueFromName = func() map[string]Encryption {
 	m := make(map[string]Encryption)
-	for i := EncryptionNone; i <= EncryptionSSL; i++ {
+	for i := None; i <= SSL; i++ {
 		m[i.String()] = i
 	}
 	return m
@@ -39,7 +40,7 @@ type Email struct {
 func NewEmail() *Email {
 	return &Email{
 		Port:       993,
-		Encryption: EncryptionSSL,
+		Encryption: SSL,
 		Inbox:      "INBOX",
 	}
 }
@@ -94,6 +95,7 @@ func HandleGetEmail(repo EmailRepository) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Add("HX-Redirect", fmt.Sprintf("/emails/%s", user))
 		EmailForm(email).Render(r.Context(), w)
 	}
 }
@@ -179,6 +181,7 @@ func HandleDeleteEmail(repo EmailRepository) http.HandlerFunc {
 			return
 		}
 
+		w.Header().Add("HX-Redirect", "/emails")
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

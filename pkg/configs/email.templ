@@ -57,13 +57,35 @@ templ breadcrumbs(items []Breadcrumb) {
 templ emailList(emails []Email) {
 	{{ b := append([]Breadcrumb{}, BaseBreadcrumbs...) }}
 	@breadcrumbs(b)
-	<div class="centered">
-		<p class="text_bold">Emails</p>
-		for _, email := range emails {
-			<div class="email">
-				<p class="email_user">{ email.User }</p>
+	<div class="flex justify-center py-4">
+		<div class="w-1/2">
+			<div class="flex justify-between items-center mb-4">
+				<h2 class="text-2xl font-bold text-gray-900">Emails</h2>
+				<a href="/emails/new" class="bg-blue-500 text-white p-2 rounded-md cursor-pointer hover:bg-blue-600">New</a>
 			</div>
-		}
+			<table class="w-full border border-gray-300">
+				<thead>
+					<tr>
+						<th class="border-b border-gray-300 p-2">User</th>
+						<th class="border-b border-gray-300 p-2">Server</th>
+						<th class="border-b border-gray-300 p-2">Port</th>
+						<th class="border-b border-gray-300 p-2">Encryption</th>
+						<th class="border-b border-gray-300 p-2">Inbox</th>
+					</tr>
+				</thead>
+				<tbody>
+					for _, email := range emails {
+						<tr class="hover:bg-gray-100 hover:cursor-pointer" hx-get={ fmt.Sprintf("/emails/%s", email.User) }>
+							<td class="border-b border-gray-300 p-2">{ email.User }</td>
+							<td class="border-b border-gray-300 p-2">{ email.IMAPServer }</td>
+							<td class="border-b border-gray-300 p-2">{ fmt.Sprintf("%d", email.Port) }</td>
+							<td class="border-b border-gray-300 p-2">{ email.Encryption.String() }</td>
+							<td class="border-b border-gray-300 p-2">{ email.Inbox }</td>
+						</tr>
+					}
+				</tbody>
+			</table>
+		</div>
 	</div>
 }
 
@@ -102,23 +124,23 @@ templ emailForm(email *Email) {
 				<div class="relative w-1/2">
 					<select class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" name="encryption">
 						<option
-							value={ EncryptionNone.String() }
-							if em.Encryption == EncryptionNone {
+							value={ None.String() }
+							if em.Encryption == None {
 								selected="1"
 							}
-						>None</option>
+						>{ None.String() }</option>
 						<option
-							value={ EncryptionStartTLS.String() }
-							if em.Encryption == EncryptionStartTLS {
+							value={ StartTLS.String() }
+							if em.Encryption == StartTLS {
 								selected="1"
 							}
-						>StartTLS</option>
+						>{ StartTLS.String() }</option>
 						<option
-							value={ EncryptionSSL.String() }
-							if em.Encryption == EncryptionSSL {
+							value={ SSL.String() }
+							if em.Encryption == SSL {
 								selected="1"
 							}
-						>SSL</option>
+						>{ SSL.String() }</option>
 					</select>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">Encryption</label>
 				</div>
@@ -129,7 +151,7 @@ templ emailForm(email *Email) {
 				<div class="flex flex-col space-y-2">
 					<input class="w-1/2 p-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600" type="submit" value="Save"/>
 					if email != nil {
-						<input class="w-1/2 p-2 bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600" type="button" value="Delete" hx-delete="/emails/{em.User}"/>
+						<input class="w-1/2 p-2 bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600" type="button" value="Delete" hx-delete={ string(templ.URL(fmt.Sprintf("/emails/%s", em.User))) }/>
 					}
 				</div>
 			</form>
@@ -142,7 +164,10 @@ templ EmailForm(email *Email) {
 }
 
 templ errorView(msg string) {
-	<p class="text-red-500">{ msg }</p>
+	@breadcrumbs(BaseBreadcrumbs)
+	<div class="flex justify-center py-4">
+		<p class="text-red-500">{ msg }</p>
+	</div>
 }
 
 templ ErrorView(msg string) {
