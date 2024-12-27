@@ -22,3 +22,16 @@
 
 # Go workspace file
 go.work
+
+# Generated templ and stringer files
+*_string.go
+*_templ.go
+
+# Node modules
+node_modules/
+
+# test databases
+*.db
+
+# Assets
+assets/

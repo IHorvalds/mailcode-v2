@@ -35,7 +35,8 @@ func startService(cfg service.Config) {
 func main() {
 	// TODO: Read this from a file in $XDG_CONFIG_HOME or $HOME
 	cfg := service.Config{
-		Port: 8080,
+		Port:   8080,
+		DbPath: "mailcode.db",
 	}
 	startService(cfg)
 }

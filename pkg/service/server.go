@@ -4,6 +4,8 @@ import (
 	"context"
 	"net/http"
 	"time"
+
+	"github.com/a-h/templ"
 )
 
 type Server struct {
@@ -13,6 +15,9 @@ type Server struct {
 
 func NewServer(addr string) *Server {
 	m := http.NewServeMux()
+	m.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
+
+	m.Handle("/", templ.Handler(Home()))
 	return &Server{
 		Mux: m,
 		srv: &http.Server{Addr: addr, Handler: m},
