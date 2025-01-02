@@ -37,7 +37,7 @@ var BaseBreadcrumbs = []Breadcrumb{
 
 templ breadcrumbs(items []Breadcrumb) {
 	<nav class="text-sm font-medium text-gray-500 mb-4 flex justify-center">
-		<ol class="list-reset flex w-1/2">
+		<ol class="list-reset flex md:w-3/4 lg:w-1/2">
 			for i, item := range items {
 				if i > 0 {
 					<li><span class="mx-2">></span></li>
@@ -109,19 +109,19 @@ templ emailForm(email *Email) {
 		}())
 		<div class="flex justify-center py-4">
 			<form class="w-1/2 flex flex-col space-y-6" action="/emails/new" method="post">
-				<div class="relative w-1/2">
+				<div class="relative md:w-3/4 lg:w-1/2">
 					<input class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" type="text" name="user" value={ em.User } placeholder=" "/>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">User</label>
 				</div>
-				<div class="relative w-1/2">
+				<div class="relative md:w-3/4 lg:w-1/2">
 					<input class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" type="text" name="server" value={ em.IMAPServer } placeholder=" "/>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">Server</label>
 				</div>
-				<div class="relative w-1/2">
+				<div class="relative md:w-3/4 lg:w-1/2">
 					<input class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" type="number" name="port" value={ fmt.Sprintf("%d", em.Port) } placeholder=" "/>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">Port</label>
 				</div>
-				<div class="relative w-1/2">
+				<div class="relative md:w-3/4 lg:w-1/2">
 					<select class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" name="encryption">
 						<option
 							value={ None.String() }
@@ -144,14 +144,14 @@ templ emailForm(email *Email) {
 					</select>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">Encryption</label>
 				</div>
-				<div class="relative w-1/2">
+				<div class="relative md:w-3/4 lg:w-1/2">
 					<input class="w-full p-2 border border-gray-300 rounded-md outline-none focus:ring-2 focus:ring-blue-500 peer" type="text" name="inbox" value={ em.Inbox } placeholder=" "/>
 					<label class="absolute left-2 top-2 text-gray-500 transition-all transform -translate-y-7 scale-75 origin-top-left peer-placeholder-shown:translate-y-0 peer-placeholder-shown:scale-100 peer-focus:-translate-y-7 peer-focus:scale-75">Inbox</label>
 				</div>
 				<div class="flex flex-col space-y-2">
-					<input class="w-1/2 p-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600" type="submit" value="Save"/>
+					<input class="md:w-3/4 lg:w-1/2 p-2 bg-blue-500 text-white rounded-md cursor-pointer hover:bg-blue-600" type="submit" value="Save"/>
 					if email != nil {
-						<input class="w-1/2 p-2 bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600" type="button" value="Delete" hx-delete={ string(templ.URL(fmt.Sprintf("/emails/%s", em.User))) }/>
+						<input class="md:w-3/4 lg:w-1/2 p-2 bg-red-500 text-white rounded-md cursor-pointer hover:bg-red-600" type="button" value="Delete" hx-delete={ string(templ.URL(fmt.Sprintf("/emails/%s", em.User))) }/>
 					}
 				</div>
 			</form>

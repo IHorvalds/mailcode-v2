@@ -1,5 +1,7 @@
 package service
 
+import "fmt"
+
 templ Home() {
 	<!DOCTYPE html>
 	<html>
@@ -16,6 +18,30 @@ templ Home() {
 				<p class="text-slate-800 w-2/3 pb-5 text-justify">This is a simple utility to pop up notifications when the mailboxes it watches get an authentication code.</p>
 				<a href="/emails" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Manage mailboxes</a>
 				<a href="/extractors" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Manage extractors</a>
+			</div>
+		</body>
+	</html>
+}
+
+templ ErrorView(status int, message string) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Mailcode v2</title>
+			<link rel="stylesheet" href="/assets/styles.css"/>
+			<script src="/assets/htmx.min.js"></script>
+		</head>
+		<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+			<div class="bg-slate-200 container rounded shadow-lg p-10 w-2/5 flex flex-col items-center justify-center space-y-4">
+				<h1 class="text-4xl font-extrabold text-gray-900">Error { fmt.Sprint(status) }</h1>
+				if message == "" {
+					<p class="text-slate-800 w-2/3 pb-5 text-justify">{ message }</p>
+				} else {
+					<p class="text-slate-800 w-2/3 pb-5 text-justify">An error occurred while processing your request.</p>
+				}
+				<a href="/" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Back to home</a>
 			</div>
 		</body>
 	</html>

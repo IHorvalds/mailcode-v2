@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/IHorvalds/mailcode-v2/pkg/auth"
 	"github.com/IHorvalds/mailcode-v2/pkg/persistence"
 	"github.com/IHorvalds/mailcode-v2/pkg/service"
 
@@ -23,6 +24,8 @@ func startService(cfg service.Config) {
 
 	srv := service.NewServer(fmt.Sprintf("127.0.0.1:%d", cfg.Port))
 	configs.Register(srv.Mux, db)
+	auth.RegisterBasicAuthHandlers(srv.Mux, db)
+	auth.RegisterOAuth2Handlers(srv.Mux, db)
 	c := srv.ListenAndServe()
 	select {
 	case <-stopCh:

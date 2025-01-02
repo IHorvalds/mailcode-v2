@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"time"
 
@@ -16,8 +17,14 @@ type Server struct {
 func NewServer(addr string) *Server {
 	m := http.NewServeMux()
 	m.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
+	m.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/" {
+			errorHandler(w, r, http.StatusNotFound)
+			return
+		}
 
-	m.Handle("/", templ.Handler(Home()))
+		templ.Handler(Home()).ServeHTTP(w, r)
+	})
 	return &Server{
 		Mux: m,
 		srv: &http.Server{Addr: addr, Handler: m},
@@ -40,4 +47,15 @@ func (s *Server) Stop() {
 	defer cancel()
 
 	s.srv.Shutdown(ctx)
+}
+
+func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
+	w.WriteHeader(status)
+
+	if status == http.StatusNotFound {
+		log.Printf("404 status: tried '%s'", r.URL.Path)
+		ErrorView(status, "Page not found").Render(r.Context(), w)
+		return
+	}
+	ErrorView(status, "").Render(r.Context(), w)
 }

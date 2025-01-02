@@ -95,7 +95,9 @@ func HandleGetEmail(repo EmailRepository) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Add("HX-Redirect", fmt.Sprintf("/emails/%s", user))
+		if r.Header.Get("HX-Request") == "true" {
+			w.Header().Add("HX-Redirect", fmt.Sprintf("/emails/%s", user))
+		}
 		EmailForm(email).Render(r.Context(), w)
 	}
 }

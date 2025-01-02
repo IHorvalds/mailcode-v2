@@ -1,0 +1,121 @@
+package auth
+
+import "fmt"
+
+templ MainComponent(view templ.Component) {
+	<!DOCTYPE html>
+	<html>
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<title>Mailcode v2</title>
+			<link rel="stylesheet" href="/assets/styles.css"/>
+			<script src="/assets/htmx.min.js"></script>
+		</head>
+		<body>
+			<header class="bg-white shadow-md py-6 mb-8">
+				<div class="container mx-auto flex justify-center">
+					<h1 class="w-1/2 text-4xl font-extrabold text-gray-900">Mailcode v2</h1>
+				</div>
+			</header>
+			<div class="container mx-auto">
+				@view
+			</div>
+		</body>
+	</html>
+}
+
+type Breadcrumb struct {
+	Name string
+	URL  string
+}
+
+var BaseBreadcrumbs = []Breadcrumb{
+	{Name: "Home", URL: "/"},
+	{Name: "Auth", URL: "/auth"},
+}
+
+templ breadcrumbs(items []Breadcrumb) {
+	<nav class="text-sm font-medium text-gray-500 mb-4 flex justify-center">
+		<ol class="list-reset flex md:w-3/4 lg:w-1/2">
+			for i, item := range items {
+				if i > 0 {
+					<li><span class="mx-2">></span></li>
+				}
+				<li>
+					if item.URL != "" {
+						<a href={ templ.URL(item.URL) } class="hover:underline">{ item.Name }</a>
+					} else {
+						<span>{ item.Name }</span>
+					}
+				</li>
+			}
+		</ol>
+	</nav>
+}
+
+templ oauth2CredsList(creds []OAuth2Credentials) {
+	{{ b := append([]Breadcrumb{}, BaseBreadcrumbs...) }}
+	@breadcrumbs(b)
+	<div class="flex justify-center py-4">
+		for _, cred := range creds {
+			<div class="w-1/2 bg-white shadow-md rounded-lg p-4 m-4">
+				<h2 class="text-xl font-bold">{ cred.User }</h2>
+				<p class="text-gray-500">{ cred.Provider }</p>
+				<button hx-get={ string(templ.URL(fmt.Sprintf("/auth/oauth2/%s/login", cred.Provider))) } class="mt-4 bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700">
+					Reauthenticate
+				</button>
+			</div>
+		}
+	</div>
+}
+
+templ OAuth2CredsList(creds []OAuth2Credentials) {
+	@MainComponent(oauth2CredsList(creds))
+}
+
+templ basicAuthCredsList(creds []BasicAuthCredentials) {
+	<table class="w-full border border-gray-300">
+		<thead>
+			<tr>
+				<th class="border-b border-gray-300 p-2">Username</th>
+				<th class="border-b border-gray-300 p-2">Password</th>
+				<th class="border-b border-gray-300 p-2">Actions</th>
+			</tr>
+		</thead>
+		<tbody>
+			for _, cred := range creds {
+				<tr>
+					<form class="w-full" action={ templ.URL(fmt.Sprintf("/auth/basic/%s", cred.User)) } method="post">
+						<td class="border-b border-gray-300 p-2">
+							<input class="w-full p-1 border border-gray-300 rounded-md" type="text" name="username" value={ cred.User } readonly/>
+						</td>
+						<td class="border-b border-gray-300 p-2">
+							<input class="w-full p-1 border border-gray-300 rounded-md" type="password" name="password" value={ cred.Password }/>
+						</td>
+						<td class="border-b border-gray-300 p-2">
+							<button class="bg-blue-500 text-white p-1 rounded-md" type="submit">Save</button>
+						</td>
+					</form>
+				</tr>
+			}
+			<tr>
+				<form class="w-full" action={ "/auth/basic/new" } method="post">
+					<td class="border-b border-gray-300 p-2">
+						<input class="w-full p-1 border border-gray-300 rounded-md" type="text" name="username" placeholder="Username"/>
+					</td>
+					<td class="border-b border-gray-300 p-2">
+						<input class="w-full p-1 border border-gray-300 rounded-md" type="password" name="password" placeholder="Password"/>
+					</td>
+					<td class="border-b border-gray-300 p-2">
+						<button class="bg-green-500 text-white p-1 rounded-md" type="submit">Add</button>
+					</td>
+				</form>
+			</tr>
+		</tbody>
+	</table>
+}
+
+templ BasicAuthCredsList(creds []BasicAuthCredentials) {
+	@MainComponent(basicAuthCredsList(creds))
+}
