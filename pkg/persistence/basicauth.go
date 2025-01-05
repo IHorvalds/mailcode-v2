@@ -9,7 +9,7 @@ import (
 
 func (r *Repository) CreateBasicAuthCredsTables() error {
 	_, err := r.db.Exec(`CREATE TABLE IF NOT EXISTS basic_auth (
-		username TEXT PRIMARY KEY,
+		username TEXT PRIMARY KEY CHECK (username <> ''),
 		password TEXT NOT NULL,
 		FORGIGN KEY username REFERENCES emails(user) ON DELETE CASCADE
 	);`)

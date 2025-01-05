@@ -10,7 +10,7 @@ import (
 // EmailRepository methods
 func (r *Repository) CreateEmailTables() error {
 	_, err := r.db.Exec(`CREATE TABLE IF NOT EXISTS emails (
-		user TEXT PRIMARY KEY,
+		user TEXT PRIMARY KEY CHECK (user <> ''),
 		imap_server TEXT NOT NULL,
 		port INTEGER NOT NULL,
 		encryption INTEGER NOT NULL CHECK (encryption >= 0 AND encryption <= 2) DEFAULT 2,
@@ -43,8 +43,15 @@ func (r *Repository) DeleteEmail(user string) error {
 	return err
 }
 
-func (r *Repository) ListEmails(query string) ([]configs.Email, error) {
-	rows, err := r.db.Query("SELECT user, imap_server, port, encryption, inbox FROM emails WHERE user LIKE ?", "%"+query+"%")
+func (r *Repository) ListEmails(filter string) ([]configs.Email, error) {
+
+	query := "SELECT user, imap_server, port, encryption, inbox FROM emails"
+	args := []interface{}{}
+	if filter != "" {
+		query += " WHERE username LIKE ?"
+		args = append(args, filter)
+	}
+	rows, err := r.db.Query(query, args...)
 	if err != nil {
 		return nil, err
 	}

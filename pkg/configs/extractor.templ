@@ -1,0 +1,18 @@
+package configs
+
+var BaseExtractorsBreadcrumbs = []Breadcrumb{
+	Breadcrumb{"Home", "/"},
+	Breadcrumb{"Extractors", "/extractors"},
+}
+
+templ subjectList(sl []Subject) {
+	for _, s := range sl {
+		<p>{ string(s) }</p>
+	}
+}
+
+templ extractorList(el []Extractor) {
+	for _, e := range el {
+		<p>{ e.Expr.String() }</p>
+	}
+}

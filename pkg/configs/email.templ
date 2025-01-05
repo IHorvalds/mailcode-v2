@@ -30,7 +30,7 @@ type Breadcrumb struct {
 	URL  string
 }
 
-var BaseBreadcrumbs = []Breadcrumb{
+var BaseEmailBreadcrumbs = []Breadcrumb{
 	{Name: "Home", URL: "/"},
 	{Name: "Emails", URL: "/emails"},
 }
@@ -55,8 +55,7 @@ templ breadcrumbs(items []Breadcrumb) {
 }
 
 templ emailList(emails []Email) {
-	{{ b := append([]Breadcrumb{}, BaseBreadcrumbs...) }}
-	@breadcrumbs(b)
+	@breadcrumbs(BaseEmailBreadcrumbs)
 	<div class="flex justify-center py-4">
 		<div class="w-1/2">
 			<div class="flex justify-between items-center mb-4">
@@ -100,7 +99,7 @@ templ emailForm(email *Email) {
 	}
 	<div>
 		@breadcrumbs(func() []Breadcrumb {
-			b := append([]Breadcrumb{}, BaseBreadcrumbs...)
+			b := append([]Breadcrumb{}, BaseEmailBreadcrumbs...)
 			if email == nil {
 				b = append(b, Breadcrumb{Name: "New"})
 				return b
@@ -164,7 +163,7 @@ templ EmailForm(email *Email) {
 }
 
 templ errorView(msg string) {
-	@breadcrumbs(BaseBreadcrumbs)
+	@breadcrumbs(BaseEmailBreadcrumbs)
 	<div class="flex justify-center py-4">
 		<p class="text-red-500">{ msg }</p>
 	</div>

@@ -49,6 +49,10 @@ func (s *Server) Stop() {
 	s.srv.Shutdown(ctx)
 }
 
+func (s *Server) GetAddress() string {
+	return s.srv.Addr
+}
+
 func errorHandler(w http.ResponseWriter, r *http.Request, status int) {
 	w.WriteHeader(status)
 

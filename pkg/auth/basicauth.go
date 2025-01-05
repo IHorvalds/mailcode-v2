@@ -48,27 +48,35 @@ func getBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 func saveBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ba := &BasicAuthCredentials{
-			User:     r.FormValue("user"),
+			User:     r.FormValue("username"),
 			Password: r.FormValue("password"),
+		}
+
+		isUpdate := false
+		if u, err := repo.GetBasicAuthCreds(ba.User); u != nil && err == nil {
+			isUpdate = true
 		}
 		err := repo.SaveBasicAuthCreds(ba)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
+		w.WriteHeader(http.StatusOK)
+		if !isUpdate {
+			basicAuthTableCell(*ba).Render(r.Context(), w)
+		}
 	}
 }
 
 func updateBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.URL.Query().Get("user")
+		user := r.PathValue("user")
 		if user == "" {
 			http.Error(w, "missing user query parameter", http.StatusBadRequest)
 			return
 		}
 		ba := &BasicAuthCredentials{
-			User:     r.FormValue("user"),
+			User:     r.FormValue("username"),
 			Password: r.FormValue("password"),
 		}
 		err := repo.SaveBasicAuthCreds(ba)
@@ -77,14 +85,13 @@ func updateBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 			return
 		}
 
-		w.Header().Add("HX-Reload", "true")
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
 func deleteBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := r.URL.Query().Get("user")
+		user := r.PathValue("user")
 		if user == "" {
 			http.Error(w, "missing user query parameter", http.StatusBadRequest)
 			return
@@ -94,6 +101,7 @@ func deleteBasicAuthCreds(repo BasicAuthRepository) http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
-		w.WriteHeader(http.StatusNoContent)
+
+		w.WriteHeader(http.StatusOK)
 	}
 }

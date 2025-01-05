@@ -30,6 +30,14 @@ func NewRepository(path string) (*Repository, error) {
 		return nil, err
 	}
 
+	if err := repo.CreateSubjectTable(); err != nil {
+		return nil, err
+	}
+
+	if err := repo.CreateExtractorTable(); err != nil {
+		return nil, err
+	}
+
 	return repo, nil
 }
 

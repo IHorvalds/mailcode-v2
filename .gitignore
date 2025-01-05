@@ -19,6 +19,7 @@
 
 # Environment configuration file
 .env
+google-oauth-vars.mk
 
 # Go workspace file
 go.work

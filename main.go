@@ -24,8 +24,10 @@ func startService(cfg service.Config) {
 
 	srv := service.NewServer(fmt.Sprintf("127.0.0.1:%d", cfg.Port))
 	configs.Register(srv.Mux, db)
+	configs.RegisterExtractorHandlers(srv.Mux, db)
+	auth.RegisterAuthHomeHandler(srv.Mux)
 	auth.RegisterBasicAuthHandlers(srv.Mux, db)
-	auth.RegisterOAuth2Handlers(srv.Mux, db)
+	auth.RegisterOAuth2Handlers(srv.Mux, srv.GetAddress(), db)
 	c := srv.ListenAndServe()
 	select {
 	case <-stopCh:
