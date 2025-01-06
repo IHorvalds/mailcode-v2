@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 type Subject string
@@ -57,7 +58,7 @@ func handleGetExtractorsAndSubjects(repo ExtractorSubjectRepository) http.Handle
 			return
 		}
 
-		ExtractorsAndSubjects(extractors, subjects).Render(r.Context(), w)
+		ExtractorsAndSubjects(subjects, extractors).Render(r.Context(), w)
 	}
 }
 
@@ -98,19 +99,17 @@ func handleDeleteExtractor(repo ExtractorRepository) http.HandlerFunc {
 
 func handleSaveSubjects(repo SubjectRepository) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var subject Subject
-		if err := json.NewDecoder(r.Body).Decode(&subject); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+		subjects := []Subject{}
+		for _, s := range strings.Split(r.Form.Get("subjects"), "\n") {
+			subjects = append(subjects, Subject(s))
 		}
 
-		if err := repo.Save(&subject); err != nil {
+		if err := repo.SaveSubjects(subjects); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
 		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(subject)
 	}
 }
 

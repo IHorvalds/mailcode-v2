@@ -5,14 +5,56 @@ var BaseExtractorsBreadcrumbs = []Breadcrumb{
 	Breadcrumb{"Extractors", "/extractors"},
 }
 
-templ subjectList(sl []Subject) {
-	for _, s := range sl {
-		<p>{ string(s) }</p>
-	}
+templ subjectExtractorList(sl []Subject, el []Extractor) {
+	<div class="container mx-auto px-4">
+		<h2 class="text-2xl font-bold text-gray-900">Subjects</h2>
+		<ul class="list-disc pl-5">
+			for _, subject := range sl {
+				<li class="py-1">{ string(subject) }</li>
+			}
+		</ul>
+		<div class="my-8"></div> <!-- Separator or gap -->
+		<h2 class="text-2xl font-bold text-gray-900">Extractors</h2>
+		<table class="w-full border border-gray-300 mt-4">
+			<thead>
+				<tr>
+					<th class="border-b border-gray-300 p-2">Regular Expression</th>
+					<th class="border-b border-gray-300 p-2">Capture Name</th>
+					<th class="border-b border-gray-300 p-2">Actions</th>
+				</tr>
+			</thead>
+			<tbody>
+				for _, extractor := range el {
+					<tr>
+						<td class="border-b border-gray-300 p-2">
+							<input class="w-full p-1 border border-gray-300 rounded-md" type="text" value={ extractor.Expr.String() }/>
+						</td>
+						<td class="border-b border-gray-300 p-2">
+							<input class="w-full p-1 border border-gray-300 rounded-md" type="text" value={ extractor.Capture }/>
+						</td>
+						<td class="border-b border-gray-300 p-2 flex space-x-2">
+							<button class="border-2 border-black bg-white text-black p-1 rounded-md">Save</button>
+							<button class="border-2 border-black bg-white text-black p-1 rounded-md">Delete</button>
+						</td>
+					</tr>
+				}
+				<tr>
+					<td class="border-b border-gray-300 p-2">
+						<input class="w-full p-1 border border-gray-300 rounded-md" type="text" placeholder="New Regular Expression"/>
+					</td>
+					<td class="border-b border-gray-300 p-2">
+						<input class="w-full p-1 border border-gray-300 rounded-md" type="text" placeholder="New Capture Name"/>
+					</td>
+					<td class="border-b border-gray-300 p-2 flex space-x-2">
+						<button class="border-2 border-black bg-white text-black p-1 rounded-md">Save</button>
+						<button class="border-2 border-black bg-white text-black p-1 rounded-md">Delete</button>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+	</div>
 }
 
-templ extractorList(el []Extractor) {
-	for _, e := range el {
-		<p>{ e.Expr.String() }</p>
-	}
+templ ExtractorsAndSubjects(sl []Subject, el []Extractor) {
+	@MainComponent(subjectExtractorList(sl, el))
 }

@@ -11,7 +11,7 @@ import (
 
 func (r *Repository) CreateSubjectTable() error {
 	_, err := r.db.Exec(`CREATE TABLE IF NOT EXISTS subjects (
-		subject TEXT PRIMARY KEY CHECK (subject <> ''),
+		subject TEXT PRIMARY KEY CHECK (subject <> '')
 	);`)
 	return err
 }
