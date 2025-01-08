@@ -11,6 +11,17 @@ ifeq ($(GOOGLE_CLIENT_SECRET),)
 	$(error GOOGLE_CLIENT_SECRET is not set)
 endif
 
+.PHONY: gobins
+gobins:
+	go install golang.org/x/tools/cmd/stringer@latest
+	go install github.com/air-verse/air@latest
+	go install github.com/a-h/templ/cmd/templ@v0.2.793
+
+.PHONY: deps
+deps:
+	go get ./...
+
+.PHONY: generate
 generate:
 	go generate ./...
 
@@ -47,13 +58,24 @@ live/sync_assets:
 	--build.include_ext "js,css"
 
 # start all 5 watch processes in parallel.
+.PHONY: live
 live: 
 	make generate
 	make -j5 live/templ live/server live/tailwind live/htmx live/sync_assets
 
 # Build the whole thing
+.PHONY: build
 build:
+	make gobins
 	go generate ./...
+	make deps
 	${GOPATH}/templ generate
 	npx --yes tailwindcss -i ./input.css -o ./assets/styles.css --minify
 	go build -ldflags "-s -w -X ${PACKAGE}/pkg/auth.GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID} -X ${PACKAGE}/pkg/auth.GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" -o build/bin/mailcode-v2
+
+.PHONY: clean
+clean:
+	rm -rf tmp/
+	rm -rf build/
+	go clean -cache
+	go clean -modcache
